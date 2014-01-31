@@ -6,6 +6,9 @@ Allows for running single threaded tasks to be run in parallel on one or multipl
 ### Example:
 
 ```php
+use Parallel\Exceptions\InvalidBinaryException;
+use Parallel\Wrapper;
+
 $parallel = new Wrapper();
 
 try {
