@@ -48,3 +48,52 @@ try {
 }
 ```
 
+### Example 2
+
+```php
+/**
+ *
+ * Running commands on multiple hosts
+ *
+ */
+
+use Parallel\Exceptions\InvalidBinaryException;
+use Parallel\Wrapper;
+
+$commands = array(
+    '/path/to/command/one.sh',
+    '/path/to/command/two.sh',
+    '/path/to/command/three.sh'
+);
+
+$maxParallelism = 10;
+
+// You can initialize the Wrapper with or without parameters
+$parallel = new Wrapper('/path/to/parallel/binary', $commands, $maxParallelism);
+
+try {
+    /**
+     * You can still set the parallelism manually, or leave it
+     * to the wrapper to calculate it
+     */
+    $parallel->setParallelism(8);
+
+    $parallel->addServer('foo@example1.com');
+    $parallel->addServer('bar@example2.com');
+    $parallel->addServer('baz@example3.com');
+
+    /**
+     * By default, the local host is also included
+     * in the list of servers used for execution.
+     * 
+     * You can exclude it from the list by setting
+     * the remoteOnly flag to true 
+     */
+    $parallel->useRemoteOnly(true);
+
+    // Run the commands and catch the output from the console
+    $output = $parallel->run();
+} catch (InvalidBinaryException $exception) {
+    // The binary file does not exist, or is not executable
+}
+```
