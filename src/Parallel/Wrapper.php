@@ -208,6 +208,10 @@ class Wrapper
                 $executable[] = $sshBits . ($this->remoteServersOnly ? '' : ':');
             }
 
+            if ($this->sameOrder) {
+                $executable[] = '-k';
+            }
+
             $parallelCommand = implode(
                 ' ',
                 array_merge(
