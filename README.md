@@ -3,7 +3,11 @@ gnu-parallel-wrapper
 Simple PHP wrapper class for the GNU Parallel tool.
 Allows for running single threaded tasks in parallel on one or multiple machines, from within PHP.
 
-### Example1
+### This package requires GNU Parallel to be installed beforehand
+
+In case you do not have Parallel on the machine you are running your PHP script on, an InvalidBinaryException will be thrown. (See examples.)
+
+### Example 1
 
 ```php
 /**
