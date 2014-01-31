@@ -493,7 +493,7 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
                 false,
                 'testServer',
                 'test command',
-                $binaryPath . " -j+0 -S testServer: ::: 'test command'"
+                $binaryPath . " -j+0 -S testServer,: ::: 'test command'"
             ),
             array(
                 true,
@@ -505,7 +505,7 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
                 false,
                 'testServer',
                 'test command',
-                $binaryPath . " -j+0 -S testServer: ::: 'test command'"
+                $binaryPath . " -j+0 -S testServer,: ::: 'test command'"
             ),
             array(
                 true,
@@ -517,7 +517,7 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
                 false,
                 'testServer',
                 array('test 1', 'test 2', 'test 3'),
-                $binaryPath . " -j+0 -S testServer: ::: 'test 1' 'test 2' 'test 3'"
+                $binaryPath . " -j+0 -S testServer,: ::: 'test 1' 'test 2' 'test 3'"
             ),
             array(
                 true,
@@ -530,7 +530,7 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
                 false,
                 'testServer',
                 array('test 1', 'test 2', 'test 3'),
-                $binaryPath . " -j+0 -S testServer: ::: 'test 1' 'test 2' 'test 3'"
+                $binaryPath . " -j+0 -S testServer,: ::: 'test 1' 'test 2' 'test 3'"
             ),
             array(
                 true,

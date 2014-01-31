@@ -205,7 +205,7 @@ class Wrapper
 
             if (is_array($this->serverList) && (count($this->serverList) > 0)) {
                 $sshBits = '-S ' . implode(',', $this->serverList);
-                $executable[] = $sshBits . ($this->remoteServersOnly ? '' : ':');
+                $executable[] = $sshBits . ($this->remoteServersOnly ? '' : ',:');
             }
 
             if ($this->sameOrder) {
