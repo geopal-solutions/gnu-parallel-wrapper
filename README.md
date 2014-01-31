@@ -5,6 +5,7 @@ Allows for running single threaded tasks to be run in parallel on one or multipl
 
 ### Example:
 
+```php
 $parallel = new Wrapper();
 
 try {
@@ -21,3 +22,4 @@ try {
 } catch (InvalidBinaryException $exception) {
     // The binary file does not exist, or is not executable
 }
+```
