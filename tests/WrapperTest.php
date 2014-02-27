@@ -213,6 +213,75 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Data provider for testing the getResultsFromDirectory method
+     *
+     * @return array
+     */
+    public function providerTestGetResultsFromDirectory()
+    {
+        return array(
+            array(
+                array(
+                    'cmd1' => array('errors' => 'test error 1', 'output' => 'test result message 1'),
+                    'cmd2' => array('errors' => 'test error 2', 'output' => 'test result message 2')
+                ),
+                'testLabel'
+            )
+        );
+    }
+
+    /**
+     * Tests Wrapper::getResultsFromDirectory
+     *
+     * @param array|string $structure
+     * @param array|string $label
+     *
+     * @covers \Parallel\Wrapper::getResultsFromDirectory
+     * @dataProvider providerTestGetResultsFromDirectory
+     */
+    public function testGetResultsFromDirectory($structure, $label = '')
+    {
+        // Create a work directory in the system temp dir
+        $tempDir = sys_get_temp_dir();
+        $parentDir = implode(DIRECTORY_SEPARATOR, array($tempDir, 'test_' . mt_rand(0, 1000) . '_' . date('YmdHis')));
+
+        $wrapper = new Wrapper();
+        $wrapper->saveOutputInDirectories(true);
+
+        if (is_dir($tempDir) && is_writable($tempDir) && !file_exists($parentDir)) {
+
+            if (count($structure) < 1) {
+                $this->assertEquals(array(), $wrapper->getResultsFromDirectory($label));
+            } else {
+
+                // Create test directory
+                mkdir($parentDir);
+                mkdir($parentDir . DIRECTORY_SEPARATOR . $label);
+                $wrapper->setResultsDirectory($parentDir, $label);
+
+                foreach ($structure as $directory => $files) {
+                    $directory = $parentDir . DIRECTORY_SEPARATOR . $label . DIRECTORY_SEPARATOR . $directory;
+
+                    if (!is_dir($directory)) {
+                        mkdir($directory);
+                    }
+
+                    foreach ($files as $fileName => $fileContents) {
+                        $fileName = $directory . DIRECTORY_SEPARATOR . (($fileName == 'errors') ? 'stderr' : 'stdout');
+                        file_put_contents($fileName, $fileContents);
+                    }
+
+                }
+
+                // Test results
+                $this->assertEquals($structure, $wrapper->getResultsFromDirectory($label));
+            }
+
+        }
+
+    }
+
+    /**
      * Data provider for testing the getTrueParallelism method
      *
      * @return array

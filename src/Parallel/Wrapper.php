@@ -172,6 +172,52 @@ class Wrapper
     }
 
     /**
+     * If saving results into a directory structure, [ $this->saveOutputInDirectories(true) ]
+     * it returns all errors and output strings found in subdirectories.
+     *
+     * If the output is not set to be saved in a directory structure, or there are no
+     * results in the directory, an empty array will be returned.
+     *
+     * The $label should be the same that was used when setting the results directory.
+     *
+     * @param string $label
+     * @return array
+     */
+    public function getResultsFromDirectory($label)
+    {
+
+        if ($this->outputToDirectories === true) {
+            $buffer = array();
+            $directory = $this->outputDirectory . DIRECTORY_SEPARATOR . $label;
+            $findFiles = array('stderr', 'stdout');
+
+            if (is_dir($directory) && is_readable($directory)) {
+                $directoryIterator = new \RecursiveDirectoryIterator($directory);
+
+                foreach(new \RecursiveIteratorIterator($directoryIterator) as $file)
+                {
+                    $fileName = basename($file);
+
+                    if (in_array($fileName, $findFiles)) {
+                        $fileName = ($fileName == 'stderr') ? 'errors' : 'output';
+                        $buffer[basename(dirname($file))][$fileName] = file_get_contents($file);
+                    }
+
+                }
+
+                return $buffer;
+            } else {
+                return array();
+            }
+
+        } else {
+            // Not outputting results into a directory
+            return array();
+        }
+
+    }
+
+    /**
      * Returns the calculated value of actual parallelism to use
      *
      * @return int
