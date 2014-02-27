@@ -96,7 +96,7 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
             $wrapper = new Wrapper('', $initParams['commandList'], $initParams['maxParallelism']);
         } else {
             $wrapper = new Wrapper();
-;       }
+        }
 
         foreach ($afterInitState as $paramName => $paramValue) {
             $this->assertEquals($paramValue, $this->getReflectionPropertyValue($wrapper, $paramName));

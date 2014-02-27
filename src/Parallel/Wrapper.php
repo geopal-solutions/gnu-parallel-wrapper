@@ -157,7 +157,7 @@ class Wrapper
     /**
      * Checks if the executable's path points to a valid binary file and stores the path
      *
-     * @param $binaryPath
+     * @param string $binaryPath
      * @return bool
      * @throws InvalidBinaryException
      */
