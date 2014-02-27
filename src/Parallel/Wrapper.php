@@ -3,6 +3,8 @@
 namespace Parallel;
 
 use Parallel\Exceptions\InvalidBinaryException;
+use Parallel\Exceptions\InvalidOutputDirectoryException;
+use Parallel\Exceptions\InvalidTempDirectoryException;
 
 class Wrapper
 {
@@ -25,6 +27,26 @@ class Wrapper
     private $maxParallelism;
 
     /**
+     * @var string
+     */
+    private $outputDirectory;
+
+    /**
+     * @var string
+     */
+    private $outputDirectoryHeader;
+
+    /**
+     * @var bool
+     */
+    private $outputToDirectories;
+
+    /**
+     * @var bool
+     */
+    private $outputToFiles;
+
+    /**
      * @var bool
      */
     private $sameOrder;
@@ -43,6 +65,11 @@ class Wrapper
      * @var array
      */
     private $serverList;
+
+    /**
+     * @var string
+     */
+    private $tempDirectory;
 
     /**
      * Constructor
@@ -67,6 +94,11 @@ class Wrapper
         $this->setMaxParallelism($maxParallelism);
         $this->setParallelism(0);
         $this->keepSameOrder(false);
+        $this->outputToDirectories = false;
+        $this->outputToFiles = false;
+        $this->tempDirectory = sys_get_temp_dir();
+        $this->outputDirectory = $this->tempDirectory;
+        $this->outputDirectoryHeader = '';
         $this->remoteServersOnly = false;
         $this->serverList = array();
     }
@@ -212,6 +244,23 @@ class Wrapper
                 $executable[] = '-k';
             }
 
+            /**
+             * If both the "output to files" and "structured output to directories"
+             * options are requested, outputting to directories takes precedence.
+             */
+            if ($this->outputToDirectories) {
+
+                if (!empty($this->outputDirectoryHeader)) {
+                    $executable[] = '--header :';
+                    array_unshift($this->commandList, $this->outputDirectoryHeader);
+                }
+
+                $executable[] = '--results ' . $this->outputDirectory;
+            } elseif ($this->outputToFiles) {
+                $executable[] = '--tmpdir ' . $this->tempDirectory;
+                $executable[] = '--files';
+            }
+
             $parallelCommand = implode(
                 ' ',
                 array_merge(
@@ -226,6 +275,31 @@ class Wrapper
             return false;
         }
 
+    }
+
+    /**
+     * Tells parallel if the output should be saved in files
+     *
+     * @param bool $flag
+     * @return bool
+     */
+    public function saveOutputInFiles($flag)
+    {
+        $this->outputToFiles = (is_bool($flag) || is_integer($flag)) ? (bool)$flag : false;
+        return $this->outputToFiles;
+    }
+
+    /**
+     * Allows for saving output in a structured way.
+     * (See http://www.gnu.org/software/parallel/parallel_tutorial.html#saving_output_into_files)
+     *
+     * @param bool $flag
+     * @return bool
+     */
+    public function saveOutputInDirectories($flag)
+    {
+        $this->outputToDirectories = (is_bool($flag) || is_integer($flag)) ? (bool)$flag : false;
+        return $this->outputToDirectories;
     }
 
     /**
@@ -267,6 +341,47 @@ class Wrapper
         }
 
         return $this->parallelism;
+    }
+
+    /**
+     * Sets output directory for saving output in a structured way.
+     * (See http://www.gnu.org/software/parallel/parallel_tutorial.html#saving_output_into_files)
+     *
+     * @param string $outputDirectory
+     * @param string $header
+     * @return bool
+     * @throws InvalidOutputDirectoryException
+     */
+    public function setResultsDirectory($outputDirectory, $header = '')
+    {
+
+        if (is_dir($outputDirectory) && is_writable($outputDirectory)) {
+            $this->outputDirectory = $outputDirectory;
+            $this->outputDirectoryHeader = is_string($header) ? $header : '';
+            return true;
+        } else {
+            throw new InvalidOutputDirectoryException();
+        }
+
+    }
+
+    /**
+     * Sets temp directory path, provided the temp dir $path is valid
+     *
+     * @param string $path
+     * @return bool
+     * @throws InvalidTempDirectoryException
+     */
+    public function setTempDirectory($path)
+    {
+
+        if (is_dir($path) && is_writable($path)) {
+            $this->tempDirectory = $path;
+            return true;
+        } else {
+            throw new InvalidTempDirectoryException();
+        }
+
     }
 
     /**
