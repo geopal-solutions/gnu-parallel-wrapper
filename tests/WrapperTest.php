@@ -3,6 +3,8 @@
 namespace tests;
 
 use Parallel\Exceptions\InvalidBinaryException;
+use Parallel\Exceptions\InvalidOutputDirectoryException;
+use Parallel\Exceptions\InvalidTempDirectoryException;
 use Parallel\Wrapper;
 
 class WrapperTest extends \PHPUnit_Framework_TestCase
@@ -211,6 +213,80 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Data provider for testing the getResultsFromDirectory method
+     *
+     * @return array
+     */
+    public function providerTestGetResultsFromDirectory()
+    {
+        return array(
+            array(
+                array(
+                    'cmd1' => array('errors' => 'test error 1', 'output' => 'test result message 1'),
+                    'cmd2' => array('errors' => 'test error 2', 'output' => 'test result message 2')
+                ),
+                'testLabel'
+            ),
+            array(
+                array(),
+                'testLabel'
+            )
+        );
+    }
+
+    /**
+     * Tests Wrapper::getResultsFromDirectory
+     *
+     * @param array|string $structure
+     * @param array|string $label
+     *
+     * @covers \Parallel\Wrapper::getResultsFromDirectory
+     * @dataProvider providerTestGetResultsFromDirectory
+     */
+    public function testGetResultsFromDirectory($structure, $label = '')
+    {
+        // Create a work directory in the system temp dir
+        $tempDir = sys_get_temp_dir();
+        $ds = DIRECTORY_SEPARATOR;
+        $parentDir = implode($ds, array($tempDir, 'test_' . mt_rand(0, 1000) . '_' . date('YmdHis')));
+
+        $wrapper = new Wrapper();
+        $wrapper->saveOutputInDirectories(true);
+
+        if (is_dir($tempDir) && is_writable($tempDir) && !file_exists($parentDir)) {
+
+            if (count($structure) < 1) {
+                $this->assertEquals(array(), $wrapper->getResultsFromDirectory($label));
+            } else {
+
+                // Create test directory
+                mkdir($parentDir);
+                mkdir($parentDir . $ds . $label);
+                $wrapper->setResultsDirectory($parentDir, $label);
+
+                foreach ($structure as $directory => $files) {
+                    $directory = $parentDir . $ds . $label . $ds . $directory;
+
+                    if (!is_dir($directory)) {
+                        mkdir($directory);
+                    }
+
+                    foreach ($files as $fileName => $fileContents) {
+                        $fileName = $directory . $ds . (($fileName == 'errors') ? 'stderr' : 'stdout');
+                        file_put_contents($fileName, $fileContents);
+                    }
+
+                }
+
+                // Test results
+                $this->assertEquals($structure, $wrapper->getResultsFromDirectory($label));
+            }
+
+        }
+
+    }
+
+    /**
      * Data provider for testing the getTrueParallelism method
      *
      * @return array
@@ -384,6 +460,74 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Data provider for testing the saveOutputInDirectories method
+     *
+     * @return array
+     */
+    public function providerTestSaveOutputInDirectories()
+    {
+        return array(
+            array(true, true),
+            array(false, false),
+            array(1, true),
+            array(0, false),
+            array("true", false),
+            array("false", false),
+            array(null, false)
+        );
+    }
+
+    /**
+     * Tests Wrapper::saveOutputInDirectories
+     *
+     * @param mixed $input
+     * @param bool $expectedResult
+     *
+     * @covers \Parallel\Wrapper::saveOutputInDirectories
+     * @dataProvider providerTestSaveOutputInDirectories
+     */
+    public function testSaveOutputInDirectories($input, $expectedResult)
+    {
+        $wrapper = new Wrapper();
+        $this->assertEquals($expectedResult, $wrapper->saveOutputInDirectories($input));
+        $this->assertEquals($expectedResult, $this->getReflectionPropertyValue($wrapper, 'outputToDirectories'));
+    }
+
+    /**
+     * Data provider for testing the saveOutputInFiles method
+     *
+     * @return array
+     */
+    public function providerTestSaveOutputInFiles()
+    {
+        return array(
+            array(true, true),
+            array(false, false),
+            array(1, true),
+            array(0, false),
+            array("true", false),
+            array("false", false),
+            array(null, false)
+        );
+    }
+
+    /**
+     * Tests Wrapper::saveOutputInFiles
+     *
+     * @param mixed $input
+     * @param bool $expectedResult
+     *
+     * @covers \Parallel\Wrapper::saveOutputInFiles
+     * @dataProvider providerTestSaveOutputInFiles
+     */
+    public function testSaveOutputInFiles($input, $expectedResult)
+    {
+        $wrapper = new Wrapper();
+        $this->assertEquals($expectedResult, $wrapper->saveOutputInFiles($input));
+        $this->assertEquals($expectedResult, $this->getReflectionPropertyValue($wrapper, 'outputToFiles'));
+    }
+
+    /**
      * Data provider for testing the setMaxParallelism method
      *
      * @return array
@@ -444,6 +588,111 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
     {
         $wrapper = new Wrapper();
         $this->assertEquals($expectedResult, $wrapper->setParallelism($input));
+    }
+
+    /**
+     * Data provider for testing the setResultsDirectory method
+     *
+     * @return array
+     */
+    public function providerTestSetResultsDirectory()
+    {
+        $provider = array(
+            array('', false),
+            array(null, false),
+            array('`"\'/\\@?:;%$&*!`', false),
+            array($_SERVER['PHP_SELF'], false),
+            array(sys_get_temp_dir(), true),
+            array(sys_get_temp_dir(), true, 'testHeader')
+        );
+
+        return $provider;
+    }
+
+    /**
+     * Tests Wrapper::setResultsDirectory
+     *
+     * @param string $directoryPathToTest
+     * @param bool $expectSuccess
+     * @param string $header
+     *
+     * @covers \Parallel\Wrapper::setResultsDirectory
+     * @dataProvider providerTestSetResultsDirectory
+     */
+    public function testSetResultsDirectory($directoryPathToTest, $expectSuccess, $header = '')
+    {
+        $wrapper = new Wrapper();
+
+        if ($expectSuccess) {
+            $this->assertTrue($wrapper->setResultsDirectory($directoryPathToTest, $header));
+
+            $storedDirectoryPath = $this->getReflectionPropertyValue($wrapper, 'outputDirectory');
+            $this->assertEquals($directoryPathToTest, $storedDirectoryPath);
+            $this->assertEquals($header, $this->getReflectionPropertyValue($wrapper, 'outputDirectoryHeader'));
+        } else {
+            $exceptionThrown = false;
+
+            try {
+                $wrapper->setResultsDirectory($directoryPathToTest);
+            } catch (InvalidOutputDirectoryException $exception) {
+                $this->assertTrue($exception instanceof InvalidOutputDirectoryException);
+                $exceptionThrown = true;
+            }
+
+            $this->assertTrue($exceptionThrown);
+        }
+
+    }
+
+    /**
+     * Data provider for testing the setTempDirectory method
+     *
+     * @return array
+     */
+    public function providerTestSetTempDirectory()
+    {
+        $provider = array(
+            array('', false),
+            array(null, false),
+            array('`"\'/\\@?:;%$&*!`', false),
+            array($_SERVER['PHP_SELF'], false),
+            array(sys_get_temp_dir(), true)
+        );
+
+        return $provider;
+    }
+
+    /**
+     * Tests Wrapper::setTempDirectory
+     *
+     * @param string $directoryPathToTest
+     * @param bool $expectSuccess
+     *
+     * @covers \Parallel\Wrapper::setTempDirectory
+     * @dataProvider providerTestSetTempDirectory
+     */
+    public function testSetTempDirectory($directoryPathToTest, $expectSuccess)
+    {
+        $wrapper = new Wrapper();
+
+        if ($expectSuccess) {
+            $this->assertTrue($wrapper->setTempDirectory($directoryPathToTest));
+
+            $storedDirectoryPath = $this->getReflectionPropertyValue($wrapper, 'tempDirectory');
+            $this->assertEquals($directoryPathToTest, $storedDirectoryPath);
+        } else {
+            $exceptionThrown = false;
+
+            try {
+                $wrapper->setTempDirectory($directoryPathToTest);
+            } catch (InvalidTempDirectoryException $exception) {
+                $this->assertTrue($exception instanceof InvalidTempDirectoryException);
+                $exceptionThrown = true;
+            }
+
+            $this->assertTrue($exceptionThrown);
+        }
+
     }
 
     /**
@@ -573,6 +822,82 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
         $wrapper->useRemoteOnly($remoteServersOnly);
         $wrapper->addServer($serverList);
         $wrapper->addCommand($commandList);
+
+        $this->assertEquals($expectedResult, $wrapper->run(true));
+    }
+
+    /**
+     * Data provider for testing the run method where the output is to go into files or directories
+     */
+    public function providerTestRunWithOutputInFilesOrDirectories()
+    {
+        $binaryPath = Wrapper::DEFAULT_BINARY_PATH;
+        $tempDir = sys_get_temp_dir();
+        return array(
+            array(
+                false,
+                true,
+                $tempDir,
+                $tempDir,
+                array(
+                    'test1',
+                    'test2'
+                ),
+                $binaryPath . " -j 2 --tmpdir " . $tempDir . " --files ::: 'test1' 'test2'"
+            ),
+            array(
+                true,
+                false,
+                $tempDir,
+                $tempDir,
+                array(
+                    'test1',
+                    'test2'
+                ),
+                $binaryPath . " -j 2 --results " . $tempDir . " ::: 'test1' 'test2'"
+            ),
+            array(
+                true,
+                true,
+                $tempDir,
+                $tempDir,
+                array(
+                    'test1',
+                    'test2'
+                ),
+                $binaryPath . " -j 2 --results " . $tempDir . " ::: 'test1' 'test2'"
+            )
+        );
+    }
+
+    /**
+     * Tests Wrapper::run where the output is to go into files or directories
+     *
+     * @param bool $outputInDirectories
+     * @param bool $outputInFiles
+     * @param string $outputDirectory
+     * @param string $tempDirectory
+     * @param array $commandList
+     * @param string $expectedResult
+     *
+     * @covers \Parallel\Wrapper::run
+     * @dataProvider providerTestRunWithOutputInFilesOrDirectories
+     */
+    public function testRunWithOutputInFilesOrDirectories(
+        $outputInDirectories,
+        $outputInFiles,
+        $outputDirectory,
+        $tempDirectory,
+        $commandList,
+        $expectedResult
+    ) {
+        $wrapper = new Wrapper();
+
+        $wrapper->addCommand($commandList);
+        $wrapper->saveOutputInDirectories($outputInDirectories);
+        $wrapper->saveOutputInFiles($outputInFiles);
+        $wrapper->setResultsDirectory($outputDirectory);
+        $wrapper->setTempDirectory($tempDirectory);
 
         $this->assertEquals($expectedResult, $wrapper->run(true));
     }
