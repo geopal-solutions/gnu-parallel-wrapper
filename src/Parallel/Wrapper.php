@@ -187,9 +187,17 @@ class Wrapper
     {
 
         if ($this->outputToDirectories === true) {
+            // Map file names to array keys
+            $fileMap = array('stderr' => 'errors', 'stdout' => 'output');
+
+            // Output buffer
             $buffer = array();
+
+            // Target directory
             $directory = $this->outputDirectory . DIRECTORY_SEPARATOR . $label;
-            $findFiles = array('stderr', 'stdout');
+
+            // Files to find
+            $findFiles = array_keys($fileMap);
 
             if (is_dir($directory) && is_readable($directory)) {
                 $directoryIterator = new \RecursiveDirectoryIterator($directory);
@@ -199,7 +207,7 @@ class Wrapper
                     $fileName = basename($file);
 
                     if (in_array($fileName, $findFiles)) {
-                        $fileName = ($fileName == 'stderr') ? 'errors' : 'output';
+                        $fileName = $fileMap[$fileName];
                         $buffer[basename(dirname($file))][$fileName] = file_get_contents($file);
                     }
 

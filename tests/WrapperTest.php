@@ -226,6 +226,10 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
                     'cmd2' => array('errors' => 'test error 2', 'output' => 'test result message 2')
                 ),
                 'testLabel'
+            ),
+            array(
+                array(),
+                'testLabel'
             )
         );
     }
@@ -243,7 +247,8 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
     {
         // Create a work directory in the system temp dir
         $tempDir = sys_get_temp_dir();
-        $parentDir = implode(DIRECTORY_SEPARATOR, array($tempDir, 'test_' . mt_rand(0, 1000) . '_' . date('YmdHis')));
+        $ds = DIRECTORY_SEPARATOR;
+        $parentDir = implode($ds, array($tempDir, 'test_' . mt_rand(0, 1000) . '_' . date('YmdHis')));
 
         $wrapper = new Wrapper();
         $wrapper->saveOutputInDirectories(true);
@@ -256,18 +261,18 @@ class WrapperTest extends \PHPUnit_Framework_TestCase
 
                 // Create test directory
                 mkdir($parentDir);
-                mkdir($parentDir . DIRECTORY_SEPARATOR . $label);
+                mkdir($parentDir . $ds . $label);
                 $wrapper->setResultsDirectory($parentDir, $label);
 
                 foreach ($structure as $directory => $files) {
-                    $directory = $parentDir . DIRECTORY_SEPARATOR . $label . DIRECTORY_SEPARATOR . $directory;
+                    $directory = $parentDir . $ds . $label . $ds . $directory;
 
                     if (!is_dir($directory)) {
                         mkdir($directory);
                     }
 
                     foreach ($files as $fileName => $fileContents) {
-                        $fileName = $directory . DIRECTORY_SEPARATOR . (($fileName == 'errors') ? 'stderr' : 'stdout');
+                        $fileName = $directory . $ds . (($fileName == 'errors') ? 'stderr' : 'stdout');
                         file_put_contents($fileName, $fileContents);
                     }
 
