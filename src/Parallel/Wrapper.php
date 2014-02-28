@@ -197,7 +197,7 @@ class Wrapper
             $directory = $this->outputDirectory . DIRECTORY_SEPARATOR . $label;
 
             // Files to find
-            $findFiles = array_keys($fileMap);
+            $filesToFind = array_keys($fileMap);
 
             if (is_dir($directory) && is_readable($directory)) {
                 $directoryIterator = new \RecursiveDirectoryIterator($directory);
@@ -206,9 +206,10 @@ class Wrapper
                 {
                     $fileName = basename($filePath);
 
-                    if (in_array($fileName, $findFiles)) {
-                        $fileName = $fileMap[$fileName];
-                        $buffer[basename(dirname($filePath))][$fileName] = file_get_contents($filePath);
+                    if (in_array($fileName, $filesToFind)) {
+                        $directoryKey = preg_replace('/[^0-9a-zA-Z _-]/', '', basename(dirname($filePath)));
+                        $mappedKey = $fileMap[$fileName];
+                        $buffer[$directoryKey][$mappedKey] = file_get_contents($filePath);
                     }
 
                 }
