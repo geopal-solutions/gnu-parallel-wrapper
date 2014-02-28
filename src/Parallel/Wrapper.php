@@ -202,13 +202,13 @@ class Wrapper
             if (is_dir($directory) && is_readable($directory)) {
                 $directoryIterator = new \RecursiveDirectoryIterator($directory);
 
-                foreach(new \RecursiveIteratorIterator($directoryIterator) as $file)
+                foreach(new \RecursiveIteratorIterator($directoryIterator) as $filePath)
                 {
-                    $fileName = basename($file);
+                    $fileName = basename($filePath);
 
                     if (in_array($fileName, $findFiles)) {
                         $fileName = $fileMap[$fileName];
-                        $buffer[basename(dirname($file))][$fileName] = file_get_contents($file);
+                        $buffer[basename(dirname($filePath))][$fileName] = file_get_contents($filePath);
                     }
 
                 }
